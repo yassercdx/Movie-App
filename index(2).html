@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CineStream</title>
+<style>
+:root{--bg:#0f0f12;--card:#18181d;--accent:#e50914;--text:#f4f4f6;--muted:#9a9aa5;--glass:rgba(255,255,255,.07)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",Tahoma,system-ui,sans-serif;min-height:100vh}
+header{position:fixed;top:0;inset-inline:0;z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 4%;background:rgba(15,15,18,.75);backdrop-filter:blur(14px);border-bottom:1px solid var(--glass)}
+.logo{font-size:1.5rem;font-weight:800;color:var(--accent);letter-spacing:1px;cursor:pointer}
+.genres{display:flex;gap:8px;flex-wrap:wrap}
+.genres button,.btn{border:none;cursor:pointer;font:inherit;color:var(--text);background:var(--glass);padding:7px 16px;border-radius:999px;transition:.2s}
+.genres button:hover{background:rgba(255,255,255,.15)}
+.genres button.active{background:var(--accent)}
+.search{margin-inline-start:auto;flex:1 1 200px;max-width:320px}
+.search input{width:100%;padding:9px 16px;border-radius:999px;border:1px solid var(--glass);background:var(--glass);color:var(--text);font:inherit;outline:none}
+.search input:focus{border-color:var(--accent)}
+.hero{position:relative;height:75vh;min-height:420px;background-size:cover;background-position:center top;display:flex;align-items:flex-end}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,var(--bg) 5%,rgba(15,15,18,.4) 55%,rgba(15,15,18,.7))}
+.hero-content{position:relative;z-index:2;padding:0 4% 8vh;max-width:640px}
+.hero h1{font-size:clamp(1.8rem,5vw,3rem);margin-bottom:10px}
+.badge{display:inline-block;background:var(--glass);backdrop-filter:blur(8px);padding:4px 12px;border-radius:8px;font-size:.9rem;margin-bottom:10px}
+.hero p{color:#ddd;line-height:1.7;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:18px}
+.btn-primary{background:var(--accent);padding:12px 30px;font-weight:700;font-size:1rem}
+.btn-primary:hover{background:#ff1f2b}
+main{padding:20px 4% 60px}
+h2.title{margin:10px 0 18px;font-size:1.3rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
+.card{background:var(--card);border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .25s,box-shadow .25s;position:relative}
+.card:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 14px 30px rgba(229,9,20,.25)}
+.card img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:#222}
+.info{padding:10px}
+.info h3{font-size:.92rem;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.stars{color:#ffc107}
+.empty{color:var(--muted);padding:40px;text-align:center;grid-column:1/-1}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:16px}
+.modal.open{display:flex}
+.modal-box{background:rgba(24,24,29,.95);border:1px solid var(--glass);border-radius:18px;width:min(900px,100%);max-height:92vh;overflow:auto;position:relative}
+.close{position:absolute;top:10px;inset-inline-start:12px;z-index:3;width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:1.2rem;cursor:pointer}
+.player{aspect-ratio:16/9;background:#000}
+.player iframe{width:100%;height:100%;border:0}
+.no-trailer{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted)}
+.modal-info{padding:20px}
+.modal-info h2{margin-bottom:8px}
+.modal-info p{line-height:1.8;color:#ccc;margin:10px 0}
+.providers{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+.providers span.p{background:var(--glass);padding:5px 12px;border-radius:8px;font-size:.85rem}
+.err{background:#3a1216;padding:14px;border-radius:10px;margin:20px 4%}
+@media(max-width:600px){.grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}.search{max-width:none;order:3;flex-basis:100%}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" id="logo">CINESTREAM</div>
+  <nav class="genres" id="genres">
+    <button class="active" data-g="">الكل</button>
+    <button data-g="28">أكشن</button>
+    <button data-g="18">دراما</button>
+    <button data-g="35">كوميديا</button>
+    <button data-g="878">خيال علمي</button>
+  </nav>
+  <div class="search"><input id="q" type="search" placeholder="ابحث عن فيلم..."></div>
+</header>
+
+<section class="hero" id="hero"></section>
+<main>
+  <h2 class="title" id="gridTitle">الأفلام الرائجة</h2>
+  <div class="grid" id="grid"></div>
+</main>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <button class="close" id="close">✕</button>
+    <div class="player" id="player"></div>
+    <div class="modal-info" id="mInfo"></div>
+  </div>
+</div>
+
+<script>
+// Get a free key at https://www.themoviedb.org/settings/api
+const API_KEY = "YOUR_TMDB_API_KEY";
+const BASE = "https://api.themoviedb.org/3";
+const IMG = "https://image.tmdb.org/t/p/";
+const LANG = "ar-SA";
+const $ = s => document.querySelector(s);
+let genre = "", query = "", heroMovie = null, debounce;
+
+async function api(path, params = {}) {
+  const url = new URL(BASE + path);
+  url.searchParams.set("api_key", API_KEY);
+  url.searchParams.set("language", LANG);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("TMDB error " + res.status);
+  return res.json();
+}
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const year = d => d ? d.slice(0, 4) : "—";
+const stars = r => { const n = Math.round(r / 2); return "★".repeat(n) + "☆".repeat(5 - n); };
+
+function showError(msg) {
+  $("#grid").innerHTML = `<div class="err">${esc(msg)}</div>`;
+}
+
+async function loadHero() {
+  const data = await api("/trending/movie/week");
+  heroMovie = data.results.find(m => m.backdrop_path) || data.results[0];
+  const m = heroMovie;
+  $("#hero").style.backgroundImage = `url(${IMG}w1280${m.backdrop_path})`;
+  $("#hero").innerHTML = `<div class="hero-content">
+    <span class="badge">⭐ ${m.vote_average.toFixed(1)} · ${year(m.release_date)} · الأول رائجاً</span>
+    <h1>${esc(m.title)}</h1>
+    <p>${esc(m.overview || "لا يوجد ملخص متاح.")}</p>
+    <button class="btn btn-primary" id="watch">▶ شاهد الآن</button></div>`;
+  $("#watch").onclick = () => openModal(m.id);
+}
+
+async function loadGrid() {
+  let data, title;
+  if (query) {
+    data = await api("/search/movie", { query, include_adult: false });
+    title = `نتائج البحث: ${query}`;
+  } else if (genre) {
+    data = await api("/discover/movie", { with_genres: genre, sort_by: "popularity.desc" });
+    title = $(`[data-g="${genre}"]`).textContent;
+  } else {
+    data = await api("/movie/popular");
+    title = "الأفلام الشائعة";
+  }
+  $("#gridTitle").textContent = title;
+  const list = data.results.filter(m => m.poster_path);
+  $("#grid").innerHTML = list.length ? list.map(m => `
+    <div class="card" data-id="${m.id}">
+      <img loading="lazy" src="${IMG}w342${m.poster_path}" alt="${esc(m.title)}">
+      <div class="info"><h3>${esc(m.title)}</h3>
+      <div class="meta"><span>${year(m.release_date)}</span><span class="stars">${stars(m.vote_average)}</span></div></div>
+    </div>`).join("") : `<div class="empty">لا توجد نتائج.</div>`;
+}
+
+async function openModal(id) {
+  $("#modal").classList.add("open");
+  $("#player").innerHTML = `<div class="no-trailer">جارٍ التحميل...</div>`;
+  $("#mInfo").innerHTML = "";
+  try {
+    const [m, vAr, vEn, prov] = await Promise.all([
+      api(`/movie/${id}`),
+      api(`/movie/${id}/videos`),
+      api(`/movie/${id}/videos`, { language: "en-US" }),
+      api(`/movie/${id}/watch/providers`, { language: "en-US" }).catch(() => ({ results: {} }))
+    ]);
+    const vids = [...vAr.results, ...vEn.results].filter(v => v.site === "YouTube");
+    const t = vids.find(v => v.type === "Trailer") || vids[0];
+    $("#player").innerHTML = t
+      ? `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(t.key)}?cc_load_policy=1&cc_lang_pref=ar&hl=ar&rel=0" allow="accelerometer;autoplay;encrypted-media;picture-in-picture" allowfullscreen></iframe>`
+      : `<div class="no-trailer">لا يوجد إعلان تشويقي متاح</div>`;
+
+    const region = prov.results?.DZ || prov.results?.SA || prov.results?.US;
+    const names = region ? [...(region.flatrate || []), ...(region.rent || []), ...(region.buy || [])].map(p => p.provider_name) : [];
+    const unique = [...new Set(names)];
+    $("#mInfo").innerHTML = `
+      <h2>${esc(m.title)}</h2>
+      <div class="meta"><span>${year(m.release_date)}</span><span>${m.runtime ? m.runtime + " دقيقة" : ""}</span><span class="stars">${stars(m.vote_average)} ${m.vote_average.toFixed(1)}</span></div>
+      <p>${esc(m.overview || "لا يوجد ملخص متاح.")}</p>
+      <div class="providers"><strong>المشاهدة القانونية:</strong>
+        ${unique.length ? unique.slice(0, 8).map(n => `<span class="p">${esc(n)}</span>`).join("") : `<span class="p">غير متوفر في منطقتك حالياً</span>`}
+        ${region?.link ? `<a class="btn" href="${esc(region.link)}" target="_blank" rel="noopener">عرض الكل</a>` : ""}
+      </div>`;
+  } catch (e) {
+    $("#player").innerHTML = `<div class="no-trailer">تعذّر التحميل</div>`;
+  }
+}
+
+function closeModal() { $("#modal").classList.remove("open"); $("#player").innerHTML = ""; }
+
+$("#grid").addEventListener("click", e => { const c = e.target.closest(".card"); if (c) openModal(c.dataset.id); });
+$("#close").onclick = closeModal;
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+$("#genres").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#genres button").forEach(x => x.classList.remove("active"));
+  b.classList.add("active"); genre = b.dataset.g; query = ""; $("#q").value = "";
+  loadGrid().catch(e => showError(e.message));
+});
+$("#q").addEventListener("input", e => {
+  clearTimeout(debounce);
+  debounce = setTimeout(() => { query = e.target.value.trim(); loadGrid().catch(err => showError(err.message)); }, 400);
+});
+$("#logo").onclick = () => { genre = ""; query = ""; $("#q").value = ""; document.querySelectorAll("#genres button").forEach((x, i) => x.classList.toggle("active", i === 0)); loadGrid(); scrollTo({ top: 0, behavior: "smooth" }); };
+
+(async function init() {
+  if (API_KEY === "YOUR_TMDB_API_KEY") { showError("ضع مفتاح TMDB الخاص بك في المتغير API_KEY داخل الملف."); return; }
+  try { await Promise.all([loadHero(), loadGrid()]); } catch (e) { showError("فشل الاتصال بـ TMDB: " + e.message); }
+})();
+</script>
+</body>
+</html>
